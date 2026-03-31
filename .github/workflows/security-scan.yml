@@ -1,0 +1,46 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"  # Weekly Monday 6am
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install safety pip-audit
+      - name: Safety check (known vulnerabilities)
+        run: safety check -r requirements.txt --output json > safety-report.json || true
+      - name: pip-audit (CVE database)
+        run: pip-audit -r requirements.txt --format json > pip-audit-report.json || true
+      - name: Upload security reports (Ketryx SOUP evidence)
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            safety-report.json
+            pip-audit-report.json
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install bandit
+      - name: Bandit SAST scan
+        run: bandit -r src/ -f json -o bandit-report.json || true
+      - name: Upload SAST report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-report
+          path: bandit-report.json

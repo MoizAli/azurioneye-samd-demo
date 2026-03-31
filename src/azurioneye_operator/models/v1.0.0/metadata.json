@@ -1,0 +1,52 @@
+{
+  "model_name": "AzurionEye Cardiac Rhythm Classifier",
+  "model_version": "1.0.0",
+  "model_type": "CNN (1D Convolutional Neural Network)",
+  "framework": "PyTorch 2.3.0",
+  "safety_classification": "IEC 62304 Class B",
+  "fda_pccp_category": "Predetermined Change Control Plan applicable",
+
+  "training": {
+    "dataset": "PhysioNet MIT-BIH Arrhythmia Database (synthetic subset)",
+    "dataset_version": "demo-v1",
+    "training_samples": 5000,
+    "validation_samples": 1000,
+    "test_samples": 500,
+    "training_date": "2026-03-15",
+    "training_environment": "ClearML (self-hosted, air-gapped)"
+  },
+
+  "performance": {
+    "accuracy": 0.94,
+    "sensitivity": 0.92,
+    "specificity": 0.95,
+    "f1_score": 0.93,
+    "auc_roc": 0.97,
+    "note": "These are dummy metrics for demo purposes"
+  },
+
+  "classes": [
+    "normal_sinus",
+    "atrial_fibrillation",
+    "atrial_flutter",
+    "ventricular_tachycardia",
+    "supraventricular_tachycardia",
+    "bradycardia",
+    "heart_block"
+  ],
+
+  "input_specification": {
+    "type": "ECG signal",
+    "sampling_rate_hz": 250,
+    "leads": ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"],
+    "minimum_duration_seconds": 1.0,
+    "format": "float array (mV)"
+  },
+
+  "data_lineage": {
+    "raw_data_hash": "sha256:dummy_hash_for_demo",
+    "preprocessing_pipeline_version": "1.0.0",
+    "feature_extraction": "raw signal (no manual feature engineering)",
+    "augmentation": ["time_shift", "amplitude_scaling", "noise_injection"]
+  }
+}

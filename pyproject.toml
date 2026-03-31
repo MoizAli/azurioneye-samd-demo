@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "azurioneye-operator"
+version = "0.1.0"
+description = "AzurionEye AI Operator - Medical Device Software (IEC 62304 Class B)"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "safety_critical: marks tests verifying safety-critical requirements",
+    "slow: marks tests that take >1s to run",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "S"]
+
+[tool.black]
+target-version = ["py311"]
+line-length = 100

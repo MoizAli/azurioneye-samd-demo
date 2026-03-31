@@ -1,0 +1,70 @@
+name: Release - Compliance Gate
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  compliance-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for release notes
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: "Gate 1: Run all tests"
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml:coverage.xml \
+            --junitxml=test-results-release.xml \
+            -v
+
+      - name: "Gate 2: Verify coverage >= 80%"
+        run: |
+          COVERAGE=$(python -c "import xml.etree.ElementTree as ET; t=ET.parse('coverage.xml').getroot(); print(float(t.attrib.get('line-rate',0))*100)")
+          echo "Coverage: ${COVERAGE}%"
+          python -c "assert float('${COVERAGE}') >= 80.0, 'Coverage below 80% minimum for Class B'"
+
+      - name: "Gate 3: Security scan"
+        run: |
+          pip install safety bandit
+          safety check -r requirements.txt || echo "::warning::Security vulnerabilities found"
+          bandit -r src/ -ll || echo "::warning::SAST findings detected"
+
+      - name: "Gate 4: Generate SBOM"
+        run: |
+          pip install cyclonedx-bom pip-licenses
+          cyclonedx-py requirements -i requirements.txt -o sbom.json --format json
+          pip-licenses --format=json --output-file=licenses.json
+
+      - name: "Gate 5: Generate release notes"
+        run: |
+          echo "# Release $(git describe --tags)" > release-notes.md
+          echo "" >> release-notes.md
+          echo "## Changes since last release" >> release-notes.md
+          git log $(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo HEAD~10)..HEAD --pretty=format:"- %s (%h)" >> release-notes.md
+
+      - name: Upload all compliance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-compliance-bundle
+          path: |
+            test-results-release.xml
+            coverage.xml
+            sbom.json
+            licenses.json
+            release-notes.md
+
+      # Ketryx webhook triggers here:
+      # 1. Ingests test results -> updates traceability matrix
+      # 2. Ingests SBOM -> updates SOUP analysis
+      # 3. Checks all 7 gates -> generates release readiness report
+      # 4. Auto-generates: Code Review Report, Problem Report, Risk Management File

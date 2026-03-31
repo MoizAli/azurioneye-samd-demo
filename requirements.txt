@@ -1,0 +1,8 @@
+# Production dependencies - SOUP components
+# Each dependency is declared in SOUP Analysis (docs/qms/SOUP_Analysis.md)
+# SBOM auto-generated from this file via CycloneDX
+
+fastapi==0.111.0
+pydantic==2.7.0
+pydantic-settings==2.3.0
+uvicorn[standard]==0.30.0

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+htmlcov/
+.coverage
+coverage.xml
+test-results*.xml
+.pytest_cache/
+
+# Generated artifacts
+sbom.json
+licenses.json
+*.log
+
+# Environment
+.env
+.env.local
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db

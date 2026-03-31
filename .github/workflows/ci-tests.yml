@@ -1,0 +1,72 @@
+name: CI - Tests & Coverage
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff black
+      - run: ruff check src/ tests/
+      - run: black --check src/ tests/
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/unit/ \
+            --cov=src \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:htmlcov \
+            --junitxml=test-results-unit.xml \
+            -v
+      - name: Upload test results (Ketryx ingests these)
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: test-results-unit.xml
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+      - name: Verify coverage >= 80% (IEC 62304 Class B)
+        run: |
+          COVERAGE=$(python -c "import xml.etree.ElementTree as ET; t=ET.parse('coverage.xml').getroot(); print(float(t.attrib.get('line-rate',0))*100)")
+          echo "Coverage: ${COVERAGE}%"
+          python -c "assert float('${COVERAGE}') >= 80.0, f'Coverage {${COVERAGE}}% < 80% minimum'"
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ \
+            --junitxml=test-results-integration.xml \
+            -v
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: test-results-integration.xml

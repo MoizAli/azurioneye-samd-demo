@@ -1,0 +1,168 @@
+# Ketryx Configuration for AzurionEye SaMD Demo
+# Documentation: https://docs.ketryx.com/configuration
+
+project:
+  name: "AzurionEye AI Operator"
+  version: "0.1.0"
+  safety_class: "IEC 62304 Class B"
+  regulatory_pathway: "FDA 510(k)"
+
+# GitHub Integration (bidirectional sync)
+github:
+  repository: "philips-internal/azurioneye-samd-demo"
+  sync_enabled: true
+  webhook_events:
+    - issues
+    - pull_request
+    - check_run
+    - release
+    - push
+
+# Issue-to-Requirement Mapping
+issue_mapping:
+  requirement:
+    label: "type/requirement"
+    id_pattern: "REQ-\\d+"
+    sync_fields:
+      - title
+      - body
+      - labels
+      - assignees
+      - linked_issues
+
+  risk_item:
+    label: "type/risk-item"
+    id_pattern: "RM-\\d+"
+    sync_fields:
+      - title
+      - body
+      - labels
+      - linked_issues
+
+  test_case:
+    label: "type/test-case"
+    id_pattern: "TC-\\d+"
+    sync_fields:
+      - title
+      - body
+      - labels
+      - linked_issues
+
+  problem_report:
+    label: "type/problem-report"
+    id_pattern: "PR-\\d+"
+
+# Label Taxonomy
+labels:
+  requirement_type:
+    - "type/requirement"
+    - "type/risk-item"
+    - "type/test-case"
+    - "type/problem-report"
+    - "type/change-request"
+
+  safety_class:
+    - "safety-class/A"
+    - "safety-class/B"
+    - "safety-class/C"
+
+  risk_level:
+    - "risk-level/high"
+    - "risk-level/medium"
+    - "risk-level/low"
+
+  verification_status:
+    - "verification-status/pending"
+    - "verification-status/passed"
+    - "verification-status/failed"
+
+# Traceability Rules
+traceability:
+  auto_link: true
+  rules:
+    - name: "Requirement to Test Case"
+      source: "type/requirement"
+      target: "type/test-case"
+      link_type: "verified_by"
+      alert_on_gap: true  # Ketryx flags if requirement has no linked test
+
+    - name: "Risk Item to Test Case"
+      source: "type/risk-item"
+      target: "type/test-case"
+      link_type: "mitigated_by"
+      alert_on_gap: true  # HIGH risks must have verification evidence
+
+    - name: "Requirement to Code"
+      source: "type/requirement"
+      target: "pull_request"
+      link_type: "implemented_by"
+      detection: "commit_message"  # Detect REQ-XXX in commit messages
+
+# Release Management Gates
+release_gates:
+  - name: "Design Review"
+    check: "all_prs_approved"
+    blocking: true
+    description: "All PRs merged since last release must have design approval"
+
+  - name: "Requirements Coverage"
+    check: "requirements_verified"
+    blocking: true
+    threshold: 100  # 100% of requirements must have linked test cases
+    description: "All SRS requirements linked to at least one passing test"
+
+  - name: "Risk Assessment"
+    check: "risks_verified"
+    blocking: true
+    filter: "risk-level/high"
+    description: "All HIGH risks verified with test evidence"
+
+  - name: "Code Coverage"
+    check: "coverage_threshold"
+    blocking: true
+    threshold: 80  # IEC 62304 Class B: 80% minimum
+    source: "coverage.xml"
+    description: "Code coverage >= 80%"
+
+  - name: "Security Scan"
+    check: "no_critical_cves"
+    blocking: true
+    max_cvss: 7.0
+    description: "No high-severity CVEs in dependencies"
+
+  - name: "SOUP Declaration"
+    check: "sbom_reviewed"
+    blocking: true
+    description: "SBOM generated and reviewed by QA"
+
+  - name: "Release Notes"
+    check: "release_notes_complete"
+    blocking: false
+    description: "Release notes completed with regulatory updates"
+
+# Document Auto-Generation
+document_generation:
+  on_release: true
+  templates:
+    - type: "code_review_report"
+      output: "docs/qms/auto/Code_Review_Report.md"
+    - type: "release_notes"
+      output: "docs/qms/auto/Release_Notes.md"
+    - type: "sbom_soup_report"
+      output: "docs/qms/auto/SOUP_Analysis.md"
+    - type: "traceability_matrix"
+      output: "docs/qms/auto/Traceability_Matrix.md"
+    - type: "risk_management_summary"
+      output: "docs/qms/auto/Risk_Management_Summary.md"
+
+# AI Assistant Configuration
+ai_assistant:
+  enabled: true
+  models:
+    - "claude-sonnet-4-6"
+    - "claude-opus-4-6"
+  capabilities:
+    - suggest_test_cases   # For uncovered requirements
+    - draft_risk_analysis  # For new risk items
+    - gap_analysis         # Flag traceability gaps
+  human_in_the_loop: true  # All AI suggestions require human approval
